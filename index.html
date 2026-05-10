@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#103c3b" />
+    <title>信息技术刷题</title>
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">信息技术实训教程</p>
+          <h1>刷题练习</h1>
+        </div>
+        <button class="icon-button" id="resetStatsBtn" type="button" title="清空练习记录" aria-label="清空练习记录">
+          ↺
+        </button>
+      </header>
+
+      <main>
+        <section class="screen is-active" id="homeScreen" aria-labelledby="homeTitle">
+          <div class="summary-grid" aria-label="题库概览">
+            <article class="metric">
+              <span id="totalQuestions">0</span>
+              <small>题库总题数</small>
+            </article>
+            <article class="metric">
+              <span id="doneCount">0</span>
+              <small>已练习</small>
+            </article>
+            <article class="metric warning">
+              <span id="wrongCount">0</span>
+              <small>错题</small>
+            </article>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2 id="homeTitle">选择章节</h2>
+              <button class="text-button" id="toggleAllUnits" type="button">全选</button>
+            </div>
+            <div class="unit-grid" id="unitGrid"></div>
+          </div>
+
+          <div class="panel compact">
+            <h2>题型</h2>
+            <div class="segmented" id="typeFilter">
+              <button class="is-active" data-type="全部" type="button">全部</button>
+              <button data-type="单选题" type="button">单选</button>
+              <button data-type="判断题" type="button">判断</button>
+              <button data-type="填空题" type="button">填空</button>
+            </div>
+          </div>
+
+          <div class="panel compact">
+            <h2>练习方式</h2>
+            <label class="random-control">
+              <span>随机数量</span>
+              <select id="randomSize" aria-label="随机抽题数量">
+                <option value="10">10 题</option>
+                <option value="20" selected>20 题</option>
+                <option value="50">50 题</option>
+                <option value="all">全部题</option>
+              </select>
+            </label>
+            <div class="mode-grid">
+              <button class="mode-card" data-start="sequence" type="button">
+                <strong>顺序练习</strong>
+                <span>按章节题号推进</span>
+              </button>
+              <button class="mode-card quiet" data-start="chapterRandom" type="button">
+                <strong>章内随机</strong>
+                <span>章节顺序固定，题目洗牌</span>
+              </button>
+              <button class="mode-card accent" data-start="random" type="button">
+                <strong>随机抽题</strong>
+                <span>按上方数量抽取</span>
+              </button>
+              <button class="mode-card danger" data-start="wrong" type="button">
+                <strong>错题本</strong>
+                <span>优先补薄弱题</span>
+              </button>
+              <button class="mode-card" data-start="starred" type="button">
+                <strong>收藏题</strong>
+                <span>复习标记内容</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="quizScreen" aria-live="polite">
+          <div class="quiz-top">
+            <button class="ghost-button" id="backBtn" type="button">返回</button>
+            <div class="quiz-meter">
+              <span id="quizCounter">0 / 0</span>
+              <div class="progress-track"><div id="progressBar"></div></div>
+            </div>
+            <button class="icon-button" id="starBtn" type="button" title="收藏本题" aria-label="收藏本题">☆</button>
+          </div>
+
+          <article class="question-card">
+            <div class="question-meta">
+              <span id="questionUnit">章节</span>
+              <span id="questionType">题型</span>
+            </div>
+            <h2 id="questionStem"></h2>
+            <div class="choice-list" id="choiceList"></div>
+            <form class="fill-form" id="fillForm">
+              <input id="fillInput" type="text" autocomplete="off" placeholder="输入你的答案" />
+              <button type="submit">提交</button>
+            </form>
+            <div class="answer-panel" id="answerPanel"></div>
+          </article>
+
+          <div class="quiz-actions">
+            <button class="ghost-button" id="prevBtn" type="button">上一题</button>
+            <button class="primary-button" id="nextBtn" type="button">下一题</button>
+          </div>
+        </section>
+      </main>
+
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
