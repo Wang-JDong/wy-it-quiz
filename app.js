@@ -31,7 +31,7 @@ const els = {
   questionStem: $('#questionStem'),
   choiceList: $('#choiceList'),
   fillForm: $('#fillForm'),
-  fillInput: $('#fillInput'),
+  fillFields: $('#fillFields'),
   answerPanel: $('#answerPanel'),
   prevBtn: $('#prevBtn'),
   nextBtn: $('#nextBtn'),
@@ -205,16 +205,14 @@ function renderQuestion() {
   els.answerPanel.innerHTML = '';
   els.answerPanel.classList.remove('is-active');
   els.fillForm.classList.toggle('is-active', question.type === '填空题');
-  els.fillInput.value = '';
-  els.fillInput.disabled = false;
+  els.fillFields.innerHTML = '';
   els.fillForm.querySelector('button').disabled = false;
   els.prevBtn.disabled = currentIndex === 0;
   els.nextBtn.textContent = currentIndex === activePool.length - 1 ? '完成' : '下一题';
 
   if (question.type === '填空题') {
+    renderFillInputs(question, done);
     if (done) {
-      els.fillInput.value = done.lastAnswer === '未填写' ? '' : done.lastAnswer;
-      els.fillInput.disabled = true;
       els.fillForm.querySelector('button').disabled = true;
       showAnswer(question, done.correct, done.lastAnswer);
     }
@@ -222,7 +220,7 @@ function renderQuestion() {
   }
 
   els.choiceList.innerHTML = question.choices
-    .map((choice) => choiceTemplate(choice, done, question.answer))
+    .map((choice) => choiceTemplate(choice, done, question.answer, question.type))
     .join('');
   els.choiceList.querySelectorAll('button').forEach((button) => {
     button.addEventListener('click', () => submitChoice(button.dataset.choice));
@@ -236,10 +234,20 @@ function renderQuestion() {
   }
 }
 
-function choiceTemplate(choice, done, answer) {
+function choiceTemplate(choice, done, answer, questionType) {
   let className = 'choice-button';
   if (done && choice.key === answer) className += ' is-correct';
   if (done && choice.key === done.lastAnswer && choice.key !== answer) className += ' is-wrong';
+  if (questionType === '判断题') className += ' judge-choice';
+
+  if (questionType === '判断题') {
+    return `
+      <button class="${className}" data-choice="${escapeHtml(choice.key)}" type="button">
+        <span>${escapeHtml(choice.key)}</span>
+      </button>
+    `;
+  }
+
   return `
     <button class="${className}" data-choice="${escapeHtml(choice.key)}" type="button">
       <span class="choice-key">${escapeHtml(choice.key)}</span>
@@ -258,18 +266,19 @@ function submitChoice(choiceKey) {
 function handleFillSubmit(event) {
   event.preventDefault();
   const question = activePool[currentIndex];
-  const userAnswer = els.fillInput.value.trim();
-  const correct = normalizeFill(userAnswer) === normalizeFill(question.answerText);
+  const userParts = getFillInputValues();
+  const userAnswer = formatFillUserAnswer(userParts);
+  const correct = isFillCorrect(question, userParts);
   recordAnswer(question, userAnswer || '未填写', correct);
   showAnswer(question, correct, userAnswer || '未填写', !correct);
-  els.fillInput.disabled = true;
+  els.fillFields.querySelectorAll('input').forEach((input) => {
+    input.disabled = true;
+  });
   els.fillForm.querySelector('button').disabled = true;
 }
 
 function showAnswer(question, correct, userAnswer, withSelfCheck = false) {
-  const answerLine = question.type === '单选题'
-    ? `${question.answer}. ${question.answerText}`
-    : question.answerText;
+  const answerLine = getAnswerLine(question);
   const verdict = correct
     ? '<strong>答对了</strong>'
     : '<strong class="bad">答错了</strong>';
@@ -295,6 +304,88 @@ function showAnswer(question, correct, userAnswer, withSelfCheck = false) {
       renderQuestion();
     });
   });
+}
+
+function renderFillInputs(question, done) {
+  const answerParts = getFillAnswerParts(question);
+  const savedParts = done ? splitStoredFillAnswer(done.lastAnswer, answerParts.length) : [];
+  els.fillFields.innerHTML = answerParts.map((_, index) => {
+    const label = answerParts.length > 1 ? `第 ${index + 1} 空` : '答案';
+    const value = savedParts[index] || '';
+    return `
+      <label class="fill-field">
+        <span>${label}</span>
+        <input class="fill-input" type="text" autocomplete="off" placeholder="输入${label}" value="${escapeHtml(value)}" ${done ? 'disabled' : ''} />
+      </label>
+    `;
+  }).join('');
+}
+
+function getFillInputValues() {
+  return Array.from(els.fillFields.querySelectorAll('input')).map((input) => input.value.trim());
+}
+
+function formatFillUserAnswer(parts) {
+  const filled = parts.map((part) => part.trim()).filter(Boolean);
+  return filled.join('；');
+}
+
+function isFillCorrect(question, userParts) {
+  const answerParts = getFillAnswerParts(question);
+  const userAnswer = formatFillUserAnswer(userParts);
+  if (normalizeFill(userAnswer) === normalizeFill(question.answerText)) return true;
+  if (answerParts.length !== userParts.length) return false;
+  return answerParts.every((part, index) => normalizeFill(part) === normalizeFill(userParts[index]));
+}
+
+function getAnswerLine(question) {
+  if (question.type === '单选题') return question.answer;
+  if (question.type === '填空题') return getFillAnswerParts(question).join('；');
+  return question.answerText;
+}
+
+function getFillAnswerParts(question) {
+  const blankCount = countBlanks(question.stem);
+  const primaryParts = splitFillAnswer(question.answerText);
+  if (blankCount > primaryParts.length) {
+    const expanded = expandJoinedParts(primaryParts, blankCount);
+    if (expanded.length > primaryParts.length) return expanded;
+  }
+  return primaryParts.length ? primaryParts : [question.answerText];
+}
+
+function countBlanks(text) {
+  const matches = String(text || '').match(/_{2,}|＿{2,}/g);
+  return matches ? matches.length : 1;
+}
+
+function splitFillAnswer(text) {
+  const parts = String(text || '')
+    .split(/[；;、，,]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length ? parts : [String(text || '').trim()];
+}
+
+function expandJoinedParts(parts, targetCount) {
+  const expanded = [];
+  parts.forEach((part, index) => {
+    const remainingOriginalParts = parts.length - index - 1;
+    if (expanded.length + 1 + remainingOriginalParts < targetCount && /和/.test(part)) {
+      const subparts = part.split(/和/).map((item) => item.trim()).filter(Boolean);
+      expanded.push(...subparts);
+    } else {
+      expanded.push(part);
+    }
+  });
+  return expanded;
+}
+
+function splitStoredFillAnswer(text, targetCount) {
+  if (!text || text === '未填写') return [];
+  const parts = splitFillAnswer(text);
+  if (parts.length >= targetCount) return parts;
+  return [text];
 }
 
 function recordAnswer(question, answer, correct, replaceLast = false) {

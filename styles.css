@@ -414,6 +414,16 @@ select {
   cursor: pointer;
 }
 
+.choice-button.judge-choice {
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  min-height: 58px;
+  font-size: 1.08rem;
+  font-weight: 900;
+  text-align: center;
+}
+
 .choice-key {
   display: grid;
   place-items: center;
@@ -447,7 +457,23 @@ select {
 
 .fill-form.is-active {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
+}
+
+.fill-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.fill-field {
+  display: grid;
+  gap: 6px;
+}
+
+.fill-field span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .fill-form input {
@@ -525,12 +551,17 @@ select {
   background: rgba(16, 60, 59, 0.94);
   color: white;
   text-align: center;
-  transform: translate(-50%, 120%);
-  transition: transform 180ms ease;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, calc(100% + 32px));
+  visibility: hidden;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
 }
 
 .toast.is-active {
+  opacity: 1;
   transform: translate(-50%, 0);
+  visibility: visible;
 }
 
 @media (min-width: 680px) {
